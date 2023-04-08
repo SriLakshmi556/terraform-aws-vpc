@@ -1,5 +1,6 @@
 locals {
   public_subnet_count = var.create_public_subnets && var.max_subnet_count == 0 && length(flatten(var.azs_list_names)) == 0 ? length(flatten(data.aws_availability_zones.azs.names)) : var.create_public_subnets && length(flatten(var.azs_list_names)) > 0 ? length(flatten(var.azs_list_names)) : var.create_private_subnets && var.max_subnet_count != 0 ? var.max_subnet_count : var.create_public_subnets && var.include_all_azs ? length(flatten(data.aws_availability_zones.azs.names)) : 0
+  subnet_mask_bits = 22
 }
 
 resource "aws_subnet" "public" {
