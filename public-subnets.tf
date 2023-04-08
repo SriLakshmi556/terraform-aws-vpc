@@ -1,19 +1,15 @@
 locals {
-  public_subnet_count = var.create_public_subnets && var.max_subnet_count == 0 && length(flatten(var.azs_list_names)) == 0 ? length(flatten(data.aws_availability_zones.azs.names)) : var.create_public_subnets && length(flatten(var.azs_list_names)) > 0 ? length(flatten(var.azs_list_names)) : var.create_private_subnets && var.max_subnet_count != 0 ? var.max_subnet_count : var.create_public_subnets && var.include_all_azs ? length(flatten(data.aws_availability_zones.azs.names)) : 0
-  subnet_mask_bits = 20
+  public_subnet_count = 3
 }
 
 resource "aws_subnet" "public" {
   count = local.public_subnet_count
-
   cidr_block = cidrsubnet(
     var.cidr_block,
-    ceil(log(length(flatten(var.include_all_azs ? data.aws_availability_zones.azs.names : var.azs_list_names)) * 2, 2)),
-  count.index + local.public_subnet_count)
-
-  availability_zone       = element(local.availability_zones, count.index)
-  vpc_id                  = join("", aws_vpc._.*.id)
-  map_public_ip_on_launch = var.map_public_ip_on_lunch
+    12,  // subnet mask size for 4096 IP addresses
+    count.index)
+  availability_zone = element(local.availability_zones, count.index)
+  vpc_id            = join("", aws_vpc._.*.id)
   tags = merge(var.additional_tags, var.additional_public_subnet_tags, tomap({ "VPC" = join("", aws_vpc._.*.id),
     "Availability Zone" = length(var.azs_list_names) > 0 ? element(var.azs_list_names, count.index) : element(data.aws_availability_zones.azs.names, count.index),
     "Name" = join(local.delimiter, [local.name, local.az_map_list_short[local.availability_zones[count.index]]]) }
