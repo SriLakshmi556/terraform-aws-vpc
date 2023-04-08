@@ -1,14 +1,13 @@
 locals {
-  private_subnet_count = var.create_private_subnets && var.max_subnet_count == 0 && length(flatten(var.azs_list_names)) == 0 ? length(flatten(data.aws_availability_zones.azs.names)) : var.create_private_subnets && length(flatten(var.azs_list_names)) > 0 ? length(flatten(var.azs_list_names)) : var.create_private_subnets && var.max_subnet_count != 0 ? var.max_subnet_count : var.create_private_subnets && var.include_all_azs ? length(flatten(data.aws_availability_zones.azs.names)) : 0
-  subnet_mask_bits = 20
+  private_subnet_count = 3
 }
 
 resource "aws_subnet" "private" {
   count = local.private_subnet_count
   cidr_block = cidrsubnet(
     var.cidr_block,
-    ceil(log(length(flatten(var.include_all_azs ? data.aws_availability_zones.azs.names : var.azs_list_names)) * 2, 2)),
-  count.index)
+    12,  // subnet mask size for 4096 IP addresses
+    count.index)
   availability_zone = element(local.availability_zones, count.index)
   vpc_id            = join("", aws_vpc._.*.id)
   tags = merge(var.additional_tags, var.additional_private_subnet_tags, tomap({ "VPC" = join("", aws_vpc._.*.id),
@@ -16,6 +15,7 @@ resource "aws_subnet" "private" {
     "Name" = join(local.delimiter, [local.name, local.az_map_list_short[local.availability_zones[count.index]]]) }
   ))
 }
+
 
 # There are as many route_table as local.nat_gateway_count
 resource "aws_route_table" "private" {
